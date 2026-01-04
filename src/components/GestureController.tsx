@@ -12,7 +12,7 @@ export const GestureController = () => {
     // Cursor State
     const [cursorActive, setCursorActive] = useState(false);
     const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
-    const [gestureStatus, setGestureStatus] = useState<'IDLE' | 'CURSOR ACTIVE' | 'DETECTING'>('IDLE');
+    const [gestureStatus, setGestureStatus] = useState<'IDLE' | 'CURSOR ACTIVE' | 'DETECTING' | 'CLICKING' | 'SCROLL UP' | 'SCROLL DOWN'>('IDLE');
 
     // Refs for optimization
     const cursorActiveRef = useRef(false);
@@ -71,10 +71,30 @@ export const GestureController = () => {
         return curledCount >= 4;
     };
 
+    // Helper: Detect Pinch (Index tip close to Thumb tip)
+    const isPinch = (landmarks: any[]) => {
+        const thumbTip = landmarks[4];
+        const indexTip = landmarks[8];
+        const distance = Math.sqrt(
+            Math.pow(thumbTip.x - indexTip.x, 2) + Math.pow(thumbTip.y - indexTip.y, 2)
+        );
+        return distance < 0.05;
+    };
+
+    // Helper: Detect Open Hand (Fingers extended)
+    const isOpenHand = (landmarks: any[]) => {
+        const tips = [8, 12, 16, 20];
+        const knuckles = [5, 9, 13, 17];
+        // Check if tips are above knuckles (y is lower)
+        return tips.every((tip, i) => landmarks[tip].y < landmarks[knuckles[i]].y);
+    };
+
     // Frame Loop
     useEffect(() => {
         let animationFrameId: number;
         let lastVideoTime = -1;
+        let lastClickTime = 0;
+        const CLICK_COOLDOWN = 500;
 
         const processResults = (results: any) => {
             if (results.landmarks && results.landmarks.length > 0) {
@@ -93,10 +113,8 @@ export const GestureController = () => {
                     }
                 }
 
-                // 2. Cursor Movement (Index Finger)
+                // 2. Cursor Movement (Index Finger) & Clicking
                 if (cursorActiveRef.current) {
-                    // We track even if not perfectly "pointing" to allow for relaxed hand, 
-                    // but strictly tracking tip [8]
                     const rawX = landmarks[8].x;
                     const rawY = landmarks[8].y;
 
@@ -109,17 +127,59 @@ export const GestureController = () => {
                     const avgX = positionBuffer.current.reduce((a, b) => a + b.x, 0) / positionBuffer.current.length;
                     const avgY = positionBuffer.current.reduce((a, b) => a + b.y, 0) / positionBuffer.current.length;
 
-                    // Mirror X coordinate (Cam Left = Screen Right)
-                    // MediaPipe X is 0 (Left) to 1 (Right). 
-                    // If user moves Right, Camera sees Left (X decreases). 
-                    // We want Screen X to Increase. So usage of (1 - x) is correct for direct mapping?
-                    // Let's assume standard selfie mirror:
-                    // User Right Hand -> Right side of screen -> MP X > 0.5? 
-                    // Actually, let's try raw x first, but inverted is usually natural for "Mirror" feel.
                     const screenX = (1 - avgX) * window.innerWidth;
                     const screenY = avgY * window.innerHeight;
 
                     setCursorPos({ x: screenX, y: screenY });
+
+                    // Click Detection (Pinch)
+                    if (isPinch(landmarks)) {
+                        if (now - lastClickTime > CLICK_COOLDOWN) {
+                            console.log("Click triggered");
+                            const element = document.elementFromPoint(screenX, screenY) as HTMLElement;
+                            if (element) {
+                                element.click();
+                                // Add visual feedback if possible?
+                                // Trigger a small ripple or distinct cursor state?
+                                // For now, simple click.
+                            }
+                            lastClickTime = now;
+                            setGestureStatus("CLICKING");
+                            setTimeout(() => setGestureStatus("CURSOR ACTIVE"), 200);
+                        }
+                    }
+                }
+
+                // 3. Scrolling (Open Hand)
+                // Only scroll if NOT in cursor mode (or maybe allow both? User said "first it was movieng doen and upward when i was doint with openhands")
+                // Let's assume Open Hand is for Scrolling anytime, or maybe just when Cursor Mode is OFF? 
+                // Using "Open Hand" while Cursor is Active might be conflicting if they open hand to move cursor.
+                // However, user specifically asked for "Open Hand" behavior. 
+                // Usually, "Index Pointing" = Cursor, "Open Hand" = Scroll, "Fist" = Toggle.
+                // So if Open Hand is detected, we scroll.
+                if (isOpenHand(landmarks) && !isFist(landmarks)) {
+                    // Scroll based on Y position (Zone based)
+                    const y = landmarks[9].y; // Use Middle finger knuckle or palm center
+                    const scrollSpeed = 15;
+
+                    if (y < 0.2) {
+                        // Top of screen -> Scroll Up
+                        window.scrollBy(0, -scrollSpeed);
+                        setGestureStatus('SCROLL UP');
+                    } else if (y > 0.8) {
+                        // Bottom of screen -> Scroll Down
+                        window.scrollBy(0, scrollSpeed);
+                        setGestureStatus('SCROLL DOWN');
+                    } else {
+                        // Center - Neutral if we want just active scrolling
+                        // Or we can leave status as previous
+                    }
+                } else if (!cursorActiveRef.current && !isFist(landmarks)) {
+                    // Reset status if nothing matches and cursor is off
+                    setGestureStatus('IDLE');
+                } else if (cursorActiveRef.current && !isPinch(landmarks)) {
+                    // If cursor active and not pinching, status is ACTIVE
+                    setGestureStatus('CURSOR ACTIVE');
                 }
             }
         };
