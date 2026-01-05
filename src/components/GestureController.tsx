@@ -22,7 +22,7 @@ export const GestureController = () => {
     const GESTURE_COOLDOWN = 1000; // ms between toggles
 
     // Custom Mouse Cursor Element Ref
-    const cursorRef = useRef<HTMLDivElement>(null);
+
 
     // Initialize HandLandmarker
     useEffect(() => {
@@ -132,6 +132,18 @@ export const GestureController = () => {
 
                     setCursorPos({ x: screenX, y: screenY });
 
+                    // 3. Scrolling (Edge Detection)
+                    const scrollZone = 0.15; // Top/Bottom 15%
+                    const scrollAmount = 15;
+
+                    if (screenY < window.innerHeight * scrollZone) {
+                        window.scrollBy(0, -scrollAmount);
+                        setGestureStatus('SCROLL UP');
+                    } else if (screenY > window.innerHeight * (1 - scrollZone)) {
+                        window.scrollBy(0, scrollAmount);
+                        setGestureStatus('SCROLL DOWN');
+                    }
+
                     // Click Detection (Pinch)
                     if (isPinch(landmarks)) {
                         if (now - lastClickTime > CLICK_COOLDOWN) {
@@ -139,9 +151,6 @@ export const GestureController = () => {
                             const element = document.elementFromPoint(screenX, screenY) as HTMLElement;
                             if (element) {
                                 element.click();
-                                // Add visual feedback if possible?
-                                // Trigger a small ripple or distinct cursor state?
-                                // For now, simple click.
                             }
                             lastClickTime = now;
                             setGestureStatus("CLICKING");
@@ -230,7 +239,8 @@ export const GestureController = () => {
                 </div>
                 <p className="text-[10px] text-white/40 uppercase tracking-widest text-right">
                     Fist: Toggle On/Off <br />
-                    Index: Move Cursor
+                    Index: Move & Edge Scroll <br />
+                    Pinch: Click
                 </p>
             </div>
 
