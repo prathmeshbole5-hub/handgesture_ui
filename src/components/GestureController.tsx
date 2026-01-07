@@ -16,8 +16,8 @@ export const GestureController = () => {
 
     // Refs for optimization
     const cursorActiveRef = useRef(false);
-    const positionBuffer = useRef<{ x: number, y: number }[]>([]);
-    const BUFFER_SIZE = 5;
+    const smoothedPosRef = useRef({ x: 0, y: 0 });
+    const SMOOTHING_FACTOR = 0.2; // Adjustable: Lower = smoother but slower, Higher = faster but jittery
     const lastGestureTime = useRef(0);
     const GESTURE_COOLDOWN = 1000; // ms between toggles
 
@@ -108,6 +108,15 @@ export const GestureController = () => {
                         cursorActiveRef.current = newState;
                         setCursorActive(newState);
                         setGestureStatus(newState ? 'CURSOR ACTIVE' : 'IDLE');
+                        if (newState) {
+                            // Snap to current position immediately to prevent flying cursor
+                            const rawX = landmarks[8].x;
+                            const rawY = landmarks[8].y;
+                            smoothedPosRef.current = {
+                                x: (1 - rawX) * window.innerWidth,
+                                y: rawY * window.innerHeight
+                            };
+                        }
                         lastGestureTime.current = now;
                         console.log("Gesture/Cursor Toggle:", newState);
                     }
@@ -118,17 +127,24 @@ export const GestureController = () => {
                     const rawX = landmarks[8].x;
                     const rawY = landmarks[8].y;
 
-                    // Smoothing
-                    positionBuffer.current.push({ x: rawX, y: rawY });
-                    if (positionBuffer.current.length > BUFFER_SIZE) {
-                        positionBuffer.current.shift();
-                    }
+                    // Smoothing Strategy: Linear Interpolation (Lerp)
+                    // 1. Calculate target screen coordinates
+                    const targetX = (1 - rawX) * window.innerWidth;
+                    const targetY = rawY * window.innerHeight;
 
-                    const avgX = positionBuffer.current.reduce((a, b) => a + b.x, 0) / positionBuffer.current.length;
-                    const avgY = positionBuffer.current.reduce((a, b) => a + b.y, 0) / positionBuffer.current.length;
+                    // 2. Interpolate current smoothed position towards target
+                    // Formula: current = current + (target - current) * factor
+                    const lx = smoothedPosRef.current.x;
+                    const ly = smoothedPosRef.current.y;
 
-                    const screenX = (1 - avgX) * window.innerWidth;
-                    const screenY = avgY * window.innerHeight;
+                    const newX = lx + (targetX - lx) * SMOOTHING_FACTOR;
+                    const newY = ly + (targetY - ly) * SMOOTHING_FACTOR;
+
+                    smoothedPosRef.current = { x: newX, y: newY };
+
+                    // 3. Update Cursor State
+                    const screenX = newX;
+                    const screenY = newY;
 
                     setCursorPos({ x: screenX, y: screenY });
 
