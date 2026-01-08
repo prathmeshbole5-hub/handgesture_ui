@@ -42,9 +42,14 @@ export const Hero = () => {
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.6 }}
                     >
-                        <a href="#about" className="inline-flex items-center gap-2 text-primary font-bold text-xs tracking-widest uppercase hover:text-white transition-colors">
+                        <motion.a
+                            href="#about"
+                            whileHover={{ scale: 1.05, x: 10 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="inline-flex items-center gap-2 text-primary font-bold text-xs tracking-widest uppercase hover:text-white transition-colors py-4 px-2"
+                        >
                             Explore The Solution &rarr;
-                        </a>
+                        </motion.a>
                     </motion.div>
                 </div>
 

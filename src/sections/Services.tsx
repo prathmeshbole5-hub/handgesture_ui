@@ -30,8 +30,9 @@ export const Services = () => {
                                 key={index}
                                 initial={{ opacity: 0, x: -20 }}
                                 whileInView={{ opacity: 1, x: 0 }}
+                                whileHover={{ scale: 1.02, x: 10, opacity: 1 }}
                                 transition={{ delay: index * 0.2 }}
-                                className={`cursor-pointer group flex flex-col gap-2 ${item.active ? 'opacity-100' : 'opacity-40 hover:opacity-80'}`}
+                                className={`cursor-pointer group flex flex-col gap-2 p-4 rounded-lg transition-all duration-300 ${item.active ? 'opacity-100 bg-white/5 border-l-2 border-primary' : 'opacity-40 hover:opacity-100 hover:bg-white/5 border-l-2 border-transparent'}`}
                             >
                                 <h3 className="text-lg font-bold tracking-widest uppercase mb-1 group-hover:text-primary transition-colors">
                                     {item.title}

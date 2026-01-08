@@ -263,16 +263,26 @@ export const GestureController = () => {
             {/* Virtual Cursor */}
             {cursorActive && (
                 <div
-                    className="fixed w-6 h-6 rounded-full border-2 border-white mix-blend-difference pointer-events-none z-[10000] transition-transform duration-75"
+                    className={`fixed pointer-events-none z-[10000] transition-all duration-100 flex items-center justify-center rounded-full
+                        ${gestureStatus === 'CLICKING' ? 'w-4 h-4 bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.8)]' :
+                            gestureStatus.includes('SCROLL') ? 'w-10 h-10 border-2 border-blue-400 bg-blue-400/20' :
+                                'w-6 h-6 border-2 border-white mix-blend-difference'}
+                    `}
                     style={{
                         left: 0,
                         top: 0,
-                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
                         transform: `translate(${cursorPos.x}px, ${cursorPos.y}px)`,
-                        boxShadow: '0 0 10px rgba(255,255,255,0.8)'
                     }}
                 >
-                    <div className="absolute inset-0 w-full h-full animate-ping rounded-full bg-white opacity-50"></div>
+                    {/* Inner Dot for precision */}
+                    <div className={`rounded-full bg-white transition-all
+                        ${gestureStatus === 'CLICKING' ? 'w-full h-full opacity-100' : 'w-1 h-1 opacity-80'}
+                    `}></div>
+
+                    {/* Ripple effect only on Click */}
+                    {gestureStatus === 'CLICKING' && (
+                        <div className="absolute inset-0 w-full h-full animate-ping rounded-full bg-red-500 opacity-75"></div>
+                    )}
                 </div>
             )}
         </>
