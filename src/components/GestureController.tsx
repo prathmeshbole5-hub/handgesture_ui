@@ -54,40 +54,7 @@ export const GestureController = () => {
         initMediapipe();
     }, []);
 
-    // Helper: Detect Fist (All fingers curled)
-    const isFist = (landmarks: any[]) => {
-        // Check if fingertips are below knuckles for all 4 fingers (Index to Pinky)
-        // Note: Y coordinates increase downwards
-        const tips = [8, 12, 16, 20];
-        const knuckles = [5, 9, 13, 17];
 
-        let curledCount = 0;
-        for (let i = 0; i < tips.length; i++) {
-            if (landmarks[tips[i]].y > landmarks[knuckles[i]].y) {
-                curledCount++;
-            }
-        }
-        // Thumb check (tip x vs ip x depends on hand side, simplified to just check proximity to palm or if index/middle/ring/pinky are curled)
-        return curledCount >= 4;
-    };
-
-    // Helper: Detect Pinch (Index tip close to Thumb tip)
-    const isPinch = (landmarks: any[]) => {
-        const thumbTip = landmarks[4];
-        const indexTip = landmarks[8];
-        const distance = Math.sqrt(
-            Math.pow(thumbTip.x - indexTip.x, 2) + Math.pow(thumbTip.y - indexTip.y, 2)
-        );
-        return distance < 0.05;
-    };
-
-    // Helper: Detect Open Hand (Fingers extended)
-    const isOpenHand = (landmarks: any[]) => {
-        const tips = [8, 12, 16, 20];
-        const knuckles = [5, 9, 13, 17];
-        // Check if tips are above knuckles (y is lower)
-        return tips.every((tip, i) => landmarks[tip].y < landmarks[knuckles[i]].y);
-    };
 
     // Frame Loop
     useEffect(() => {
@@ -95,6 +62,42 @@ export const GestureController = () => {
         let lastVideoTime = -1;
         let lastClickTime = 0;
         const CLICK_COOLDOWN = 500;
+
+        // Helper: Calculate Euclidean distance between two points
+        const getDistance = (p1: { x: number; y: number }, p2: { x: number; y: number }) => {
+            return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+        };
+
+        // Helper: Detect Fist (All fingers curled)
+        const isFist = (landmarks: any[]) => {
+            const tips = [8, 12, 16, 20]; // Index, Middle, Ring, Pinky tips
+            const pips = [6, 10, 14, 18];  // PIP joints
+            const wrist = landmarks[0];
+
+            let curledCount = 0;
+            for (let i = 0; i < tips.length; i++) {
+                if (getDistance(landmarks[tips[i]], wrist) < getDistance(landmarks[pips[i]], wrist)) {
+                    curledCount++;
+                }
+            }
+            return curledCount >= 4;
+        };
+
+        // Helper: Detect Pinch (Index tip close to Thumb tip)
+        const isPinch = (landmarks: any[]) => {
+            const thumbTip = landmarks[4];
+            const indexTip = landmarks[8];
+            const distance = getDistance(thumbTip, indexTip);
+            return distance < 0.05;
+        };
+
+        // Helper: Detect Open Hand
+        const isOpenHand = (landmarks: any[]) => {
+            const tips = [8, 12, 16, 20];
+            const pips = [6, 10, 14, 18];
+            const wrist = landmarks[0];
+            return tips.every((tip, i) => getDistance(landmarks[tip], wrist) > getDistance(landmarks[pips[i]], wrist));
+        };
 
         const processResults = (results: any) => {
             if (results.landmarks && results.landmarks.length > 0) {
@@ -109,7 +112,6 @@ export const GestureController = () => {
                         setCursorActive(newState);
                         setGestureStatus(newState ? 'CURSOR ACTIVE' : 'IDLE');
                         if (newState) {
-                            // Snap to current position immediately to prevent flying cursor
                             const rawX = landmarks[8].x;
                             const rawY = landmarks[8].y;
                             smoothedPosRef.current = {
@@ -127,13 +129,9 @@ export const GestureController = () => {
                     const rawX = landmarks[8].x;
                     const rawY = landmarks[8].y;
 
-                    // Smoothing Strategy: Linear Interpolation (Lerp)
-                    // 1. Calculate target screen coordinates
                     const targetX = (1 - rawX) * window.innerWidth;
                     const targetY = rawY * window.innerHeight;
 
-                    // 2. Interpolate current smoothed position towards target
-                    // Formula: current = current + (target - current) * factor
                     const lx = smoothedPosRef.current.x;
                     const ly = smoothedPosRef.current.y;
 
@@ -142,14 +140,13 @@ export const GestureController = () => {
 
                     smoothedPosRef.current = { x: newX, y: newY };
 
-                    // 3. Update Cursor State
                     const screenX = newX;
                     const screenY = newY;
 
                     setCursorPos({ x: screenX, y: screenY });
 
-                    // 3. Scrolling (Edge Detection)
-                    const scrollZone = 0.15; // Top/Bottom 15%
+                    // Scrolling (Edge Detection)
+                    const scrollZone = 0.15;
                     const scrollAmount = 15;
 
                     if (screenY < window.innerHeight * scrollZone) {
@@ -176,34 +173,20 @@ export const GestureController = () => {
                 }
 
                 // 3. Scrolling (Open Hand)
-                // Only scroll if NOT in cursor mode (or maybe allow both? User said "first it was movieng doen and upward when i was doint with openhands")
-                // Let's assume Open Hand is for Scrolling anytime, or maybe just when Cursor Mode is OFF? 
-                // Using "Open Hand" while Cursor is Active might be conflicting if they open hand to move cursor.
-                // However, user specifically asked for "Open Hand" behavior. 
-                // Usually, "Index Pointing" = Cursor, "Open Hand" = Scroll, "Fist" = Toggle.
-                // So if Open Hand is detected, we scroll.
                 if (isOpenHand(landmarks) && !isFist(landmarks)) {
-                    // Scroll based on Y position (Zone based)
-                    const y = landmarks[9].y; // Use Middle finger knuckle or palm center
+                    const y = landmarks[9].y;
                     const scrollSpeed = 15;
 
                     if (y < 0.2) {
-                        // Top of screen -> Scroll Up
                         window.scrollBy(0, -scrollSpeed);
                         setGestureStatus('SCROLL UP');
                     } else if (y > 0.8) {
-                        // Bottom of screen -> Scroll Down
                         window.scrollBy(0, scrollSpeed);
                         setGestureStatus('SCROLL DOWN');
-                    } else {
-                        // Center - Neutral if we want just active scrolling
-                        // Or we can leave status as previous
                     }
                 } else if (!cursorActiveRef.current && !isFist(landmarks)) {
-                    // Reset status if nothing matches and cursor is off
                     setGestureStatus('IDLE');
                 } else if (cursorActiveRef.current && !isPinch(landmarks)) {
-                    // If cursor active and not pinching, status is ACTIVE
                     setGestureStatus('CURSOR ACTIVE');
                 }
             }
@@ -239,25 +222,38 @@ export const GestureController = () => {
 
                 <div className="relative w-32 h-24 rounded-lg overflow-hidden border-2 border-white/20 shadow-2xl bg-black">
                     {webcamEnabled && (
-                        <Webcam
-                            ref={webcamRef}
-                            className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
-                            audio={false}
-                            width={320}
-                            height={240}
-                            videoConstraints={{
-                                width: 320,
-                                height: 240,
-                                facingMode: "user"
-                            }}
-                        />
+                        <>
+                            <Webcam
+                                ref={webcamRef}
+                                className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
+                                audio={false}
+                                width={320}
+                                height={240}
+                                videoConstraints={{
+                                    width: 320,
+                                    height: 240,
+                                    facingMode: "user"
+                                }}
+                            />
+                            {/* Visual Feedback Overlay */}
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <span className="text-4xl drop-shadow-lg filter">
+                                    {gestureStatus === 'CLICKING' ? '👌' :
+                                        gestureStatus === 'CURSOR ACTIVE' ? '👆' :
+                                            gestureStatus === 'SCROLL UP' ? '⬆️' :
+                                                gestureStatus === 'SCROLL DOWN' ? '⬇️' :
+                                                    cursorActive ? '👀' : '✋'}
+                                </span>
+                            </div>
+                        </>
                     )}
                 </div>
-                <p className="text-[10px] text-white/40 uppercase tracking-widest text-right">
-                    Fist: Toggle On/Off <br />
-                    Index: Move & Edge Scroll <br />
-                    Pinch: Click
-                </p>
+                <div className="text-[10px] text-white/40 uppercase tracking-widest text-right space-y-1">
+                    <p>✊ Fist: Toggle On/Off</p>
+                    <p>👆 Index: Move Cursor</p>
+                    <p>👌 Pinch: Click</p>
+                    <p>✋ Open: Scroll</p>
+                </div>
             </div>
 
             {/* Virtual Cursor */}
