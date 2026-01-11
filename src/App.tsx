@@ -30,8 +30,50 @@ function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  /* Custom Cursor Logic */
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  const [isHovering, setIsHovering] = useState(false);
+
+  useEffect(() => {
+    const moveCursor = (e: MouseEvent) => {
+      setCursorPos({ x: e.clientX, y: e.clientY });
+    };
+
+    const handleMouseOver = (e: MouseEvent) => {
+      if ((e.target as HTMLElement).tagName === 'A' || (e.target as HTMLElement).tagName === 'BUTTON' || (e.target as HTMLElement).closest('a') || (e.target as HTMLElement).closest('button')) {
+        setIsHovering(true);
+      } else {
+        setIsHovering(false);
+      }
+    };
+
+    window.addEventListener('mousemove', moveCursor);
+    window.addEventListener('mouseover', handleMouseOver);
+
+    return () => {
+      window.removeEventListener('mousemove', moveCursor);
+      window.removeEventListener('mouseover', handleMouseOver);
+    };
+  }, []);
+
   return (
-    <div className="bg-dark min-h-screen text-white font-sans selection:bg-primary selection:text-white">
+    <div className="bg-dark min-h-screen text-white font-sans selection:bg-primary selection:text-white relative cursor-none">
+      {/* Global Scanline Effect */}
+      <div className="fixed inset-0 pointer-events-none z-[50] opacity-[0.03] scanline"></div>
+
+      {/* Custom Mouse Cursor */}
+      <div
+        className="fixed pointer-events-none z-[9999] mix-blend-difference transition-transform duration-100 ease-out"
+        style={{
+          left: cursorPos.x,
+          top: cursorPos.y,
+          transform: `translate(-50%, -50%) scale(${isHovering ? 2.5 : 1})`
+        }}
+      >
+        <div className={`w-4 h-4 rounded-full bg-white ${isHovering ? 'opacity-50' : 'opacity-100'}`}></div>
+        {isHovering && <div className="absolute inset-0 border border-white rounded-full animate-ping"></div>}
+      </div>
+
       <Navbar activeSection={activeSection} />
 
       {/* Hand Gesture Controller Overlay */}

@@ -20,7 +20,8 @@ export const Hero = () => {
                         initial={{ opacity: 0, x: -50 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.8 }}
-                        className="text-6xl md:text-8xl font-bold tracking-widest text-white mb-4"
+                        className="text-6xl md:text-8xl font-bold tracking-widest text-white mb-4 glitch-hover cursor-default relative"
+                        data-text="EVIDENCE"
                     >
                         EVIDENCE
                     </motion.h1>

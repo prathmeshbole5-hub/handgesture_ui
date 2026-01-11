@@ -209,60 +209,90 @@ export const GestureController = () => {
         return () => cancelAnimationFrame(animationFrameId);
     }, [handLandmarker]);
 
+    // ... (previous logic remains same, just modifying the UI return)
+
     return (
         <>
-            {/* Control Panel */}
-            <div className="fixed bottom-4 right-4 z-[9999] flex flex-col items-end gap-2 pointer-events-none">
+            {/* Control Panel / HUD */}
+            <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-4 pointer-events-none select-none">
+
+                {/* Status Indicator Pill */}
                 <div className={`
-                    backdrop-blur-sm p-3 rounded-lg border border-white/10 text-xs font-bold uppercase tracking-widest mb-2 transition-colors duration-200
-                    ${cursorActive ? 'bg-green-500 text-black' : 'bg-dark/80 text-white'}
+                    backdrop-blur-md px-4 py-2 rounded-full border border-white/10 
+                    text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg transition-all duration-300
+                    flex items-center gap-2
+                    ${cursorActive ? 'bg-primary/20 border-primary/50 text-white' : 'bg-black/50 text-white/50 border-white/5'}
                 `}>
-                    Status: <span>{gestureStatus}</span>
+                    <div className={`w-2 h-2 rounded-full ${cursorActive ? 'bg-primary animate-pulse' : 'bg-red-500'}`}></div>
+                    <span>{gestureStatus}</span>
                 </div>
 
-                <div className="relative w-32 h-24 rounded-lg overflow-hidden border-2 border-white/20 shadow-2xl bg-black">
-                    {webcamEnabled && (
-                        <>
-                            <Webcam
-                                ref={webcamRef}
-                                className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
-                                audio={false}
-                                width={320}
-                                height={240}
-                                videoConstraints={{
-                                    width: 320,
-                                    height: 240,
-                                    facingMode: "user"
-                                }}
-                            />
-                            {/* Visual Feedback Overlay */}
-                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                <span className="text-4xl drop-shadow-lg filter">
-                                    {gestureStatus === 'CLICKING' ? '👌' :
-                                        gestureStatus === 'CURSOR ACTIVE' ? '👆' :
-                                            gestureStatus === 'SCROLL UP' ? '⬆️' :
-                                                gestureStatus === 'SCROLL DOWN' ? '⬇️' :
-                                                    cursorActive ? '👀' : '✋'}
-                                </span>
-                            </div>
-                        </>
-                    )}
+                {/* Main HUD Display */}
+                <div className="relative group">
+                    {/* HUD Frame */}
+                    <div className="absolute -inset-2 bg-gradient-to-tr from-primary/20 to-transparent rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                    <div className="relative w-48 h-32 rounded-lg overflow-hidden border border-white/10 bg-black/80 backdrop-blur-sm shadow-2xl">
+                        {/* Grid Overlay */}
+                        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:10px_10px]"></div>
+
+                        {webcamEnabled && (
+                            <>
+                                <Webcam
+                                    ref={webcamRef}
+                                    className="absolute inset-0 w-full h-full object-cover scale-x-[-1] opacity-30 grayscale mix-blend-screen"
+                                    audio={false}
+                                    width={320}
+                                    height={240}
+                                    videoConstraints={{
+                                        width: 320,
+                                        height: 240,
+                                        facingMode: "user"
+                                    }}
+                                />
+
+                                {/* HUD Data Overlay */}
+                                <div className="absolute inset-0 p-2 flex flex-col justify-between font-mono text-[8px] text-primary/80">
+                                    <div className="flex justify-between items-start">
+                                        <span>G.CONTROLLER v1.0</span>
+                                        <span>REC</span>
+                                    </div>
+
+                                    {/* Center Target */}
+                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 border border-white/20 rounded-full flex items-center justify-center">
+                                        <div className="w-1 h-1 bg-primary rounded-full"></div>
+                                    </div>
+
+                                    <div className="flex justify-between items-end">
+                                        <div className="flex flex-col">
+                                            <span>X: {cursorPos.x.toFixed(0)}</span>
+                                            <span>Y: {cursorPos.y.toFixed(0)}</span>
+                                        </div>
+                                        <span>{cursorActive ? 'ACTIVE' : 'STANDBY'}</span>
+                                    </div>
+                                </div>
+
+                                {/* Dynamic Icon Overlay */}
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-50">
+                                    {gestureStatus === 'CLICKING' && <div className="w-12 h-12 border-2 border-primary rounded-full animate-ping"></div>}
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
-                <div className="text-[10px] text-white/40 uppercase tracking-widest text-right space-y-1">
-                    <p>✊ Fist: Toggle On/Off</p>
-                    <p>👆 Index: Move Cursor</p>
-                    <p>👌 Pinch: Click</p>
-                    <p>✋ Open: Scroll</p>
+
+                {/* Quick Guide */}
+                <div className="flex gap-2 text-[8px] text-white/30 uppercase tracking-widest font-mono">
+                    <div className="flex items-center gap-1"><span className="text-primary font-bold">Fist</span> Toggle</div>
+                    <div className="flex items-center gap-1"><span className="text-primary font-bold">Pinch</span> Click</div>
                 </div>
             </div>
 
-            {/* Virtual Cursor */}
+            {/* Virtual Cursor (Visuals) */}
             {cursorActive && (
                 <div
-                    className={`fixed pointer-events-none z-[10000] transition-all duration-100 flex items-center justify-center rounded-full
-                        ${gestureStatus === 'CLICKING' ? 'w-4 h-4 bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.8)]' :
-                            gestureStatus.includes('SCROLL') ? 'w-10 h-10 border-2 border-blue-400 bg-blue-400/20' :
-                                'w-6 h-6 border-2 border-white mix-blend-difference'}
+                    className={`fixed pointer-events-none z-[10000] transition-all duration-75 ease-out
+                        ${gestureStatus === 'CLICKING' ? 'scale-75' : 'scale-100'}
                     `}
                     style={{
                         left: 0,
@@ -270,15 +300,19 @@ export const GestureController = () => {
                         transform: `translate(${cursorPos.x}px, ${cursorPos.y}px)`,
                     }}
                 >
-                    {/* Inner Dot for precision */}
-                    <div className={`rounded-full bg-white transition-all
-                        ${gestureStatus === 'CLICKING' ? 'w-full h-full opacity-100' : 'w-1 h-1 opacity-80'}
-                    `}></div>
+                    <div className="relative -translate-x-1/2 -translate-y-1/2">
+                        {/* Main Ring */}
+                        <div className={`w-8 h-8 rounded-full border-2 transition-colors duration-200 flex items-center justify-center
+                            ${gestureStatus === 'CLICKING' ? 'border-primary bg-primary/20' : 'border-white/50'}
+                        `}>
+                            {/* Inner Dot */}
+                            <div className={`w-1 h-1 bg-white rounded-full ${gestureStatus === 'CLICKING' ? 'bg-primary' : ''}`}></div>
+                        </div>
 
-                    {/* Ripple effect only on Click */}
-                    {gestureStatus === 'CLICKING' && (
-                        <div className="absolute inset-0 w-full h-full animate-ping rounded-full bg-red-500 opacity-75"></div>
-                    )}
+                        {/* Crosshairs */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-[1px] bg-white/20"></div>
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-12 w-[1px] bg-white/20"></div>
+                    </div>
                 </div>
             )}
         </>
