@@ -291,7 +291,7 @@ export const GestureController = () => {
             {/* Virtual Cursor (Visuals) */}
             {cursorActive && (
                 <div
-                    className={`fixed pointer-events-none z-[10000] transition-all duration-75 ease-out
+                    className={`fixed pointer-events-none z-[10000] transition-all duration-75 ease-out mix-blend-difference
                         ${gestureStatus === 'CLICKING' ? 'scale-75' : 'scale-100'}
                     `}
                     style={{
@@ -303,15 +303,15 @@ export const GestureController = () => {
                     <div className="relative -translate-x-1/2 -translate-y-1/2">
                         {/* Main Ring */}
                         <div className={`w-8 h-8 rounded-full border-2 transition-colors duration-200 flex items-center justify-center
-                            ${gestureStatus === 'CLICKING' ? 'border-primary bg-primary/20' : 'border-white/50'}
+                            ${gestureStatus === 'CLICKING' ? 'border-primary bg-primary/20' : 'border-white'}
                         `}>
                             {/* Inner Dot */}
                             <div className={`w-1 h-1 bg-white rounded-full ${gestureStatus === 'CLICKING' ? 'bg-primary' : ''}`}></div>
                         </div>
 
                         {/* Crosshairs */}
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-[1px] bg-white/20"></div>
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-12 w-[1px] bg-white/20"></div>
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-[1px] bg-white/50"></div>
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-12 w-[1px] bg-white/50"></div>
                     </div>
                 </div>
             )}
