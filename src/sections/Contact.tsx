@@ -53,9 +53,14 @@ export const Contact = () => {
                     <input type="text" placeholder="Your Topic" className="w-full bg-transparent border border-gray-700 p-3 text-sm focus:border-primary focus:outline-none transition-colors" />
                     <textarea placeholder="Your Message" rows={4} className="w-full bg-transparent border border-gray-700 p-3 text-sm focus:border-primary focus:outline-none transition-colors"></textarea>
 
-                    <button type="submit" className="bg-primary text-white text-xs font-bold uppercase tracking-widest px-8 py-3 hover:bg-white hover:text-black transition-colors">
+                    <motion.button
+                        type="submit"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="btn-glow bg-primary text-white text-xs font-bold uppercase tracking-widest px-8 py-3 hover:bg-white hover:text-black transition-colors"
+                    >
                         Send Message
-                    </button>
+                    </motion.button>
                 </form>
             </div>
 

@@ -36,6 +36,8 @@ export const Portfolio = () => {
                             key={item.id}
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
                             transition={{ delay: index * 0.2 }}
                             className="group relative cursor-pointer"
                         >
