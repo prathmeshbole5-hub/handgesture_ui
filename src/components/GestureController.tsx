@@ -7,7 +7,8 @@ console.log("GestureController Module: Loading...");
 export const GestureController = () => {
     const webcamRef = useRef<Webcam>(null);
     const [handLandmarker, setHandLandmarker] = useState<HandLandmarker | null>(null);
-    const [webcamEnabled, setWebcamEnabled] = useState(false);
+    const [isModelReady, setIsModelReady] = useState(false);
+    const [isCameraActive, setIsCameraActive] = useState(false);
 
     // Cursor State
     const [cursorActive, setCursorActive] = useState(false);
@@ -17,12 +18,9 @@ export const GestureController = () => {
     // Refs for optimization
     const cursorActiveRef = useRef(false);
     const smoothedPosRef = useRef({ x: 0, y: 0 });
-    const SMOOTHING_FACTOR = 0.2; // Adjustable: Lower = smoother but slower, Higher = faster but jittery
+    const SMOOTHING_FACTOR = 0.2;
     const lastGestureTime = useRef(0);
-    const GESTURE_COOLDOWN = 1000; // ms between toggles
-
-    // Custom Mouse Cursor Element Ref
-
+    const GESTURE_COOLDOWN = 1000;
 
     // Initialize HandLandmarker
     useEffect(() => {
@@ -45,7 +43,7 @@ export const GestureController = () => {
 
                 console.log("GestureController: MediaPipe Initialized Successfully");
                 setHandLandmarker(landmarker);
-                setWebcamEnabled(true);
+                setIsModelReady(true);
             } catch (error) {
                 console.error("GestureController: Error initializing MediaPipe:", error);
             }
@@ -54,26 +52,24 @@ export const GestureController = () => {
         initMediapipe();
     }, []);
 
-
-
     // Frame Loop
     useEffect(() => {
+        if (!isCameraActive || !isModelReady) return;
+
         let animationFrameId: number;
         let lastVideoTime = -1;
         let lastClickTime = 0;
         const CLICK_COOLDOWN = 500;
 
-        // Helper: Calculate Euclidean distance between two points
+        // Helper functions (same as before)
         const getDistance = (p1: { x: number; y: number }, p2: { x: number; y: number }) => {
             return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
         };
 
-        // Helper: Detect Fist (All fingers curled)
         const isFist = (landmarks: any[]) => {
-            const tips = [8, 12, 16, 20]; // Index, Middle, Ring, Pinky tips
-            const pips = [6, 10, 14, 18];  // PIP joints
+            const tips = [8, 12, 16, 20];
+            const pips = [6, 10, 14, 18];
             const wrist = landmarks[0];
-
             let curledCount = 0;
             for (let i = 0; i < tips.length; i++) {
                 if (getDistance(landmarks[tips[i]], wrist) < getDistance(landmarks[pips[i]], wrist)) {
@@ -83,7 +79,6 @@ export const GestureController = () => {
             return curledCount >= 4;
         };
 
-        // Helper: Detect Pinch (Index tip close to Thumb tip)
         const isPinch = (landmarks: any[]) => {
             const thumbTip = landmarks[4];
             const indexTip = landmarks[8];
@@ -91,7 +86,6 @@ export const GestureController = () => {
             return distance < 0.05;
         };
 
-        // Helper: Detect Open Hand
         const isOpenHand = (landmarks: any[]) => {
             const tips = [8, 12, 16, 20];
             const pips = [6, 10, 14, 18];
@@ -120,39 +114,31 @@ export const GestureController = () => {
                             };
                         }
                         lastGestureTime.current = now;
-                        console.log("Gesture/Cursor Toggle:", newState);
                     }
                 }
 
-                // 2. Cursor Movement (Index Finger) & Clicking
+                // 2. Cursor Movement & Clicking
                 if (cursorActiveRef.current) {
                     const rawX = landmarks[8].x;
                     const rawY = landmarks[8].y;
-
                     const targetX = (1 - rawX) * window.innerWidth;
                     const targetY = rawY * window.innerHeight;
 
                     const lx = smoothedPosRef.current.x;
                     const ly = smoothedPosRef.current.y;
-
                     const newX = lx + (targetX - lx) * SMOOTHING_FACTOR;
                     const newY = ly + (targetY - ly) * SMOOTHING_FACTOR;
 
                     smoothedPosRef.current = { x: newX, y: newY };
-
-                    const screenX = newX;
-                    const screenY = newY;
-
-                    setCursorPos({ x: screenX, y: screenY });
+                    setCursorPos({ x: newX, y: newY });
 
                     // Scrolling (Edge Detection)
                     const scrollZone = 0.15;
                     const scrollAmount = 15;
-
-                    if (screenY < window.innerHeight * scrollZone) {
+                    if (newY < window.innerHeight * scrollZone) {
                         window.scrollBy(0, -scrollAmount);
                         setGestureStatus('SCROLL UP');
-                    } else if (screenY > window.innerHeight * (1 - scrollZone)) {
+                    } else if (newY > window.innerHeight * (1 - scrollZone)) {
                         window.scrollBy(0, scrollAmount);
                         setGestureStatus('SCROLL DOWN');
                     }
@@ -160,11 +146,8 @@ export const GestureController = () => {
                     // Click Detection (Pinch)
                     if (isPinch(landmarks)) {
                         if (now - lastClickTime > CLICK_COOLDOWN) {
-                            console.log("Click triggered");
-                            const element = document.elementFromPoint(screenX, screenY) as HTMLElement;
-                            if (element) {
-                                element.click();
-                            }
+                            const element = document.elementFromPoint(newX, newY) as HTMLElement;
+                            if (element) element.click();
                             lastClickTime = now;
                             setGestureStatus("CLICKING");
                             setTimeout(() => setGestureStatus("CURSOR ACTIVE"), 200);
@@ -176,7 +159,6 @@ export const GestureController = () => {
                 if (isOpenHand(landmarks) && !isFist(landmarks)) {
                     const y = landmarks[9].y;
                     const scrollSpeed = 15;
-
                     if (y < 0.2) {
                         window.scrollBy(0, -scrollSpeed);
                         setGestureStatus('SCROLL UP');
@@ -207,9 +189,7 @@ export const GestureController = () => {
         loop();
 
         return () => cancelAnimationFrame(animationFrameId);
-    }, [handLandmarker]);
-
-    // ... (previous logic remains same, just modifying the UI return)
+    }, [handLandmarker, isCameraActive, isModelReady]);
 
     return (
         <>
@@ -220,23 +200,33 @@ export const GestureController = () => {
                 <div className={`
                     backdrop-blur-md px-4 py-2 rounded-full border border-white/10 
                     text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg transition-all duration-300
-                    flex items-center gap-2
-                    ${cursorActive ? 'bg-primary/20 border-primary/50 text-white' : 'bg-black/50 text-white/50 border-white/5'}
+                    flex items-center gap-2 pointer-events-auto
+                    ${isCameraActive ? (cursorActive ? 'bg-primary/20 border-primary/50 text-white' : 'bg-black/50 text-white/50 border-white/5') : 'bg-red-900/20 border-red-500/30 text-red-400'}
                 `}>
-                    <div className={`w-2 h-2 rounded-full ${cursorActive ? 'bg-primary animate-pulse' : 'bg-red-500'}`}></div>
-                    <span>{gestureStatus}</span>
+                    <div className={`w-2 h-2 rounded-full ${isCameraActive ? (cursorActive ? 'bg-primary animate-pulse' : 'bg-yellow-500') : 'bg-red-500'}`}></div>
+                    <span>{isCameraActive ? gestureStatus : 'OFFLINE'}</span>
                 </div>
 
                 {/* Main HUD Display */}
-                <div className="relative group">
+                <div className="relative group pointer-events-auto">
                     {/* HUD Frame */}
                     <div className="absolute -inset-2 bg-gradient-to-tr from-primary/20 to-transparent rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-                    <div className="relative w-48 h-32 rounded-lg overflow-hidden border border-white/10 bg-black/80 backdrop-blur-sm shadow-2xl">
+                    <div className="relative w-48 h-32 rounded-lg overflow-hidden border border-white/10 bg-black/80 backdrop-blur-sm shadow-2xl transition-all duration-500">
+                        {/* Power Button */}
+                        <button
+                            onClick={() => setIsCameraActive(!isCameraActive)}
+                            className="absolute top-2 right-2 z-20 p-2 rounded-full hover:bg-white/10 transition-colors"
+                            title={isCameraActive ? "Turn Off Camera" : "Turn On Camera"}
+                        >
+                            <div className={`w-3 h-3 rounded-full border-2 transition-all duration-300 ${isCameraActive ? 'border-primary bg-primary shadow-[0_0_10px_theme(colors.primary.DEFAULT)]' : 'border-red-500/50 bg-red-900/20'}`}></div>
+                        </button>
+
                         {/* Grid Overlay */}
                         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:10px_10px]"></div>
 
-                        {webcamEnabled && (
+                        {/* Camera Feed or Placeholder */}
+                        {isCameraActive && isModelReady ? (
                             <>
                                 <Webcam
                                     ref={webcamRef}
@@ -253,17 +243,17 @@ export const GestureController = () => {
 
                                 {/* HUD Data Overlay */}
                                 <div className="absolute inset-0 p-2 flex flex-col justify-between font-mono text-[8px] text-primary/80">
-                                    <div className="flex justify-between items-start">
+                                    <div className="flex justify-between items-start pointer-events-none">
                                         <span>G.CONTROLLER v1.0</span>
                                         <span>REC</span>
                                     </div>
 
                                     {/* Center Target */}
-                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 border border-white/20 rounded-full flex items-center justify-center">
+                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 border border-white/20 rounded-full flex items-center justify-center pointer-events-none">
                                         <div className="w-1 h-1 bg-primary rounded-full"></div>
                                     </div>
 
-                                    <div className="flex justify-between items-end">
+                                    <div className="flex justify-between items-end pointer-events-none">
                                         <div className="flex flex-col">
                                             <span>X: {cursorPos.x.toFixed(0)}</span>
                                             <span>Y: {cursorPos.y.toFixed(0)}</span>
@@ -277,6 +267,13 @@ export const GestureController = () => {
                                     {gestureStatus === 'CLICKING' && <div className="w-12 h-12 border-2 border-primary rounded-full animate-ping"></div>}
                                 </div>
                             </>
+                        ) : (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-white/20 font-mono text-[10px] tracking-widest gap-2">
+                                <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center">
+                                    <div className="w-1 h-20 bg-white/10 rotate-45 absolute"></div>
+                                </div>
+                                <span>CAMERA OFF</span>
+                            </div>
                         )}
                     </div>
                 </div>
