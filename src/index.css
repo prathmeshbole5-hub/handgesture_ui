@@ -28,7 +28,9 @@ body {
   border-radius: 4px;
 }
 
-::-webkit-scrollbar-thumb:hover {
+/* Scrollbar Hover */
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb.gesture-hover {
   background: #ff4d00;
 }
 
@@ -68,7 +70,8 @@ body {
 }
 
 /* Glitch Effect Utilities */
-.glitch-hover:hover {
+.glitch-hover:hover,
+.glitch-hover.gesture-hover {
   animation: glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
   color: #ff4d00;
 }
@@ -119,7 +122,8 @@ body {
   pointer-events: none;
 }
 
-.btn-glow:hover::after {
+.btn-glow:hover::after,
+.btn-glow.gesture-hover::after {
   opacity: 1;
   transform: scale(1);
 }

@@ -18,6 +18,7 @@ export const GestureController = () => {
     // Refs for optimization
     const cursorActiveRef = useRef(false);
     const smoothedPosRef = useRef({ x: 0, y: 0 });
+    const lastHoveredElementRef = useRef<HTMLElement | null>(null);
     const SMOOTHING_FACTOR = 0.2;
     const lastGestureTime = useRef(0);
     const GESTURE_COOLDOWN = 1000;
@@ -93,6 +94,62 @@ export const GestureController = () => {
             return tips.every((tip, i) => getDistance(landmarks[tip], wrist) > getDistance(landmarks[pips[i]], wrist));
         };
 
+        const updateHoverState = (x: number, y: number) => {
+            const element = document.elementFromPoint(x, y) as HTMLElement;
+
+            // If the element under cursor has changed
+            if (element !== lastHoveredElementRef.current) {
+                // 1. Cleanup old element
+                if (lastHoveredElementRef.current) {
+                    try {
+                        // Remove CSS class for simulated hover
+                        lastHoveredElementRef.current.classList.remove('gesture-hover');
+
+                        // Dispatch Leave Events
+                        lastHoveredElementRef.current.dispatchEvent(new MouseEvent('mouseleave', {
+                            bubbles: true, cancelable: true, view: window, clientX: x, clientY: y
+                        }));
+                        lastHoveredElementRef.current.dispatchEvent(new MouseEvent('mouseout', {
+                            bubbles: true, cancelable: true, view: window, clientX: x, clientY: y
+                        }));
+                    } catch (e) {
+                        // Element might have been removed from DOM
+                    }
+                }
+
+                // 2. Setup new element
+                if (element) {
+                    // Start from the target element and traverse up to find interactive elements
+                    // This creates a "deep" hover effect so if you hover an icon inside a button, the button also gets hovered
+                    let current: HTMLElement | null = element;
+                    while (current && current.tagName !== 'BODY') {
+                        if (
+                            current.tagName === 'BUTTON' ||
+                            current.tagName === 'A' ||
+                            current.classList.contains('btn-glow') ||
+                            current.classList.contains('glitch-hover') ||
+                            current.onclick != null ||
+                            window.getComputedStyle(current).cursor === 'pointer'
+                        ) {
+                            current.classList.add('gesture-hover');
+                            break; // Stop after highlighting the main interactive parent
+                        }
+                        current = current.parentElement;
+                    }
+
+                    // Dispatch Enter Events to the direct target
+                    element.dispatchEvent(new MouseEvent('mouseenter', {
+                        bubbles: true, cancelable: true, view: window, clientX: x, clientY: y
+                    }));
+                    element.dispatchEvent(new MouseEvent('mouseover', {
+                        bubbles: true, cancelable: true, view: window, clientX: x, clientY: y
+                    }));
+                }
+
+                lastHoveredElementRef.current = element;
+            }
+        };
+
         const processResults = (results: any) => {
             if (results.landmarks && results.landmarks.length > 0) {
                 const landmarks = results.landmarks[0];
@@ -112,6 +169,12 @@ export const GestureController = () => {
                                 x: (1 - rawX) * window.innerWidth,
                                 y: rawY * window.innerHeight
                             };
+                        } else {
+                            // Cleanup hover when turning off
+                            if (lastHoveredElementRef.current) {
+                                lastHoveredElementRef.current.classList.remove('gesture-hover');
+                                lastHoveredElementRef.current = null;
+                            }
                         }
                         lastGestureTime.current = now;
                     }
@@ -132,6 +195,9 @@ export const GestureController = () => {
                     smoothedPosRef.current = { x: newX, y: newY };
                     setCursorPos({ x: newX, y: newY });
 
+                    // Update Hover State
+                    updateHoverState(newX, newY);
+
                     // Scrolling (Edge Detection)
                     const scrollZone = 0.15;
                     const scrollAmount = 15;
@@ -147,7 +213,12 @@ export const GestureController = () => {
                     if (isPinch(landmarks)) {
                         if (now - lastClickTime > CLICK_COOLDOWN) {
                             const element = document.elementFromPoint(newX, newY) as HTMLElement;
-                            if (element) element.click();
+                            if (element) {
+                                element.click();
+                                // Also trigger active state visual
+                                element.classList.add('active');
+                                setTimeout(() => element.classList.remove('active'), 200);
+                            }
                             lastClickTime = now;
                             setGestureStatus("CLICKING");
                             setTimeout(() => setGestureStatus("CURSOR ACTIVE"), 200);
