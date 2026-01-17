@@ -19,7 +19,7 @@ export const GestureController = () => {
     const cursorActiveRef = useRef(false);
     const smoothedPosRef = useRef({ x: 0, y: 0 });
     const lastHoveredElementRef = useRef<HTMLElement | null>(null);
-    const SMOOTHING_FACTOR = 0.2;
+    const isPinchedRef = useRef(false); // New: Track pinch state for hysteresis
     const lastGestureTime = useRef(0);
     const GESTURE_COOLDOWN = 1000;
 
@@ -80,12 +80,7 @@ export const GestureController = () => {
             return curledCount >= 4;
         };
 
-        const isPinch = (landmarks: any[]) => {
-            const thumbTip = landmarks[4];
-            const indexTip = landmarks[8];
-            const distance = getDistance(thumbTip, indexTip);
-            return distance < 0.05;
-        };
+
 
         const isOpenHand = (landmarks: any[]) => {
             const tips = [8, 12, 16, 20];
@@ -189,8 +184,23 @@ export const GestureController = () => {
 
                     const lx = smoothedPosRef.current.x;
                     const ly = smoothedPosRef.current.y;
-                    const newX = lx + (targetX - lx) * SMOOTHING_FACTOR;
-                    const newY = ly + (targetY - ly) * SMOOTHING_FACTOR;
+
+                    // Adaptive Smoothing (New)
+                    // Calculate distance to determine "speed"
+                    const dist = Math.sqrt(Math.pow(targetX - lx, 2) + Math.pow(targetY - ly, 2));
+
+                    // Variable smoothing factor: 
+                    // Low speed (precision) -> Low factor (~0.1)
+                    // High speed (flick) -> High factor (~0.6)
+                    const minSmooth = 0.1;
+                    const maxSmooth = 0.6;
+                    const speedThreshold = 200; // Pixel distance to reach max smoothing
+
+                    // Linear interpolation of smoothing factor
+                    const smoothFactor = minSmooth + (Math.min(dist, speedThreshold) / speedThreshold) * (maxSmooth - minSmooth);
+
+                    const newX = lx + (targetX - lx) * smoothFactor;
+                    const newY = ly + (targetY - ly) * smoothFactor;
 
                     smoothedPosRef.current = { x: newX, y: newY };
                     setCursorPos({ x: newX, y: newY });
@@ -209,19 +219,35 @@ export const GestureController = () => {
                         setGestureStatus('SCROLL DOWN');
                     }
 
-                    // Click Detection (Pinch)
-                    if (isPinch(landmarks)) {
-                        if (now - lastClickTime > CLICK_COOLDOWN) {
-                            const element = document.elementFromPoint(newX, newY) as HTMLElement;
-                            if (element) {
-                                element.click();
-                                // Also trigger active state visual
-                                element.classList.add('active');
-                                setTimeout(() => element.classList.remove('active'), 200);
+                    // Click Detection with Hysteresis (New)
+                    const thumbTip = landmarks[4];
+                    const indexTip = landmarks[8];
+                    const pinchDist = getDistance(thumbTip, indexTip);
+
+                    // Hysteresis Thresholds
+                    const PINCH_START = 0.04; // Must be very close to start click
+                    const PINCH_END = 0.08;   // Must open wide to release click
+
+                    if (!isPinchedRef.current) {
+                        // Attempting to click
+                        if (pinchDist < PINCH_START) {
+                            if (now - lastClickTime > CLICK_COOLDOWN) {
+                                const element = document.elementFromPoint(newX, newY) as HTMLElement;
+                                if (element) {
+                                    element.click();
+                                    element.classList.add('active');
+                                    setTimeout(() => element.classList.remove('active'), 200);
+                                }
+                                lastClickTime = now;
+                                setGestureStatus("CLICKING");
+                                setTimeout(() => setGestureStatus("CURSOR ACTIVE"), 200);
+                                isPinchedRef.current = true; // Engage pinch lock
                             }
-                            lastClickTime = now;
-                            setGestureStatus("CLICKING");
-                            setTimeout(() => setGestureStatus("CURSOR ACTIVE"), 200);
+                        }
+                    } else {
+                        // Waiting for release
+                        if (pinchDist > PINCH_END) {
+                            isPinchedRef.current = false; // Disengage pinch lock
                         }
                     }
                 }
@@ -239,7 +265,7 @@ export const GestureController = () => {
                     }
                 } else if (!cursorActiveRef.current && !isFist(landmarks)) {
                     setGestureStatus('IDLE');
-                } else if (cursorActiveRef.current && !isPinch(landmarks)) {
+                } else if (cursorActiveRef.current && !isPinchedRef.current) {
                     setGestureStatus('CURSOR ACTIVE');
                 }
             }
