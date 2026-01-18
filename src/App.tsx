@@ -74,6 +74,15 @@ function App() {
         {isHovering && <div className="absolute inset-0 border border-white rounded-full animate-ping"></div>}
       </div>
 
+      {/* Global Spotlight Effect */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 transition-opacity duration-300"
+        style={{
+          background: `radial-gradient(600px circle at ${cursorPos.x}px ${cursorPos.y}px, rgba(255, 77, 0, 0.06), transparent 80%)`
+        }}
+      ></div>
+
+
       <Navbar activeSection={activeSection} />
 
       {/* Hand Gesture Controller Overlay */}

@@ -1,4 +1,6 @@
 import { motion } from 'framer-motion';
+import { Magnetic } from '../components/Magnetic';
+import { TextScramble } from '../components/TextScramble';
 
 export const Hero = () => {
     return (
@@ -21,9 +23,8 @@ export const Hero = () => {
                         whileInView={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.8 }}
                         className="text-6xl md:text-8xl font-bold tracking-widest text-white mb-4 glitch-hover cursor-default relative"
-                        data-text="EVIDENCE"
                     >
-                        EVIDENCE
+                        <TextScramble>EVIDENCE</TextScramble>
                     </motion.h1>
 
                     <motion.p
@@ -43,14 +44,14 @@ export const Hero = () => {
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.6 }}
                     >
-                        <motion.a
-                            href="#about"
-                            whileHover={{ scale: 1.05, x: 10 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="btn-glow inline-flex items-center gap-2 text-primary font-bold text-xs tracking-widest uppercase hover:text-white transition-colors py-4 px-2"
-                        >
-                            Explore The Solution &rarr;
-                        </motion.a>
+                        <Magnetic>
+                            <motion.a
+                                href="#about"
+                                className="btn-glow inline-flex items-center gap-2 text-primary font-bold text-xs tracking-widest uppercase hover:text-white transition-colors py-4 px-2"
+                            >
+                                Explore The Solution &rarr;
+                            </motion.a>
+                        </Magnetic>
                     </motion.div>
                 </div>
 
