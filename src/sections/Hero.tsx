@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { Magnetic } from '../components/Magnetic';
 import { TextScramble } from '../components/TextScramble';
 
@@ -12,13 +12,17 @@ export const Hero = () => {
             {/* Content */}
             <div className="relative z-10 container mx-auto px-12 md:px-24 flex flex-col justify-center h-full">
                 <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-4 text-white/60 mb-8">
+                    <motion.div
+                        style={{ y: useTransform(useScroll().scrollY, [0, 500], [0, -50]) }}
+                        className="flex items-center gap-4 text-white/60 mb-8"
+                    >
                         <span className="text-xl font-bold">01</span>
                         <span className="text-xs tracking-[0.2em] font-bold">DEIV</span>
                         <div className="h-[2px] w-12 bg-white/20"></div>
-                    </div>
+                    </motion.div>
 
                     <motion.h1
+                        style={{ x: useTransform(useScroll().scrollY, [0, 500], [0, 100]) }}
                         initial={{ opacity: 0, x: -50 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.8 }}

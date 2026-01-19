@@ -208,6 +208,15 @@ export const GestureController = () => {
                     // Update Hover State
                     updateHoverState(newX, newY);
 
+                    // Dispatch Global Mouse Move for Custom Cursor Integration
+                    window.dispatchEvent(new MouseEvent('mousemove', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window,
+                        clientX: newX,
+                        clientY: newY
+                    }));
+
                     // Scrolling (Edge Detection)
                     const scrollZone = 0.15;
                     const scrollAmount = 15;
