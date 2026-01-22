@@ -1,0 +1,19 @@
+{
+  "name": "handgesture-server",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Backend server for hand gesture website",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {},
+  "keywords": ["gesture", "nodejs", "express", "api"],
+  "author": "",
+  "license": "MIT"
+}
