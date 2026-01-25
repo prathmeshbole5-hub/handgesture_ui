@@ -55,8 +55,22 @@ export const Contact = () => {
 
                     <motion.button
                         type="submit"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                        whileHover={{
+                            scale: 1.1,
+                            rotate: [0, -1, 1, -1, 0],
+                            boxShadow: "0 0 25px rgba(255, 77, 0, 0.8)"
+                        }}
+                        whileTap={{ scale: 0.9, rotate: 0 }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 400,
+                            damping: 10,
+                            rotate: {
+                                duration: 0.5,
+                                repeat: Infinity,
+                                repeatDelay: 1
+                            }
+                        }}
                         className="btn-glow bg-primary text-white text-xs font-bold uppercase tracking-widest px-8 py-3 hover:bg-white hover:text-black transition-colors"
                     >
                         Send Message

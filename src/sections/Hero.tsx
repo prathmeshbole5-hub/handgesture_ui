@@ -51,6 +51,17 @@ export const Hero = () => {
                         <Magnetic>
                             <motion.a
                                 href="#about"
+                                whileHover={{
+                                    scale: 1.15,
+                                    y: -5,
+                                    boxShadow: "0 10px 40px rgba(255, 77, 0, 0.6)"
+                                }}
+                                whileTap={{ scale: 0.95, y: 0 }}
+                                transition={{
+                                    type: "spring",
+                                    stiffness: 500,
+                                    damping: 15
+                                }}
                                 className="btn-glow inline-flex items-center gap-2 text-primary font-bold text-xs tracking-widest uppercase hover:text-white transition-colors py-4 px-2"
                             >
                                 Explore The Solution &rarr;

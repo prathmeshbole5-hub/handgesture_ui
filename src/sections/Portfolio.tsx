@@ -36,9 +36,19 @@ export const Portfolio = () => {
                             key={item.id}
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            transition={{ delay: index * 0.2 }}
+                            whileHover={{
+                                scale: 1.08,
+                                y: -10,
+                                rotate: [0, -2, 2, 0],
+                                boxShadow: "0 20px 60px rgba(255, 77, 0, 0.4)"
+                            }}
+                            whileTap={{ scale: 0.95 }}
+                            transition={{
+                                delay: index * 0.2,
+                                type: "spring",
+                                stiffness: 300,
+                                damping: 20
+                            }}
                             className="group relative cursor-pointer"
                         >
                             <div className="bg-white overflow-hidden aspect-[3/4] relative">

@@ -38,16 +38,40 @@ export const Blog = () => {
                         </p>
 
                         <div className="space-y-4">
-                            <div className="border-t border-gray-200 pt-4 cursor-pointer hover:bg-gray-50 transition-colors p-2">
+                            <motion.div
+                                whileHover={{
+                                    scale: 1.05,
+                                    x: 10,
+                                    boxShadow: "0 10px 30px rgba(255, 77, 0, 0.3)"
+                                }}
+                                transition={{
+                                    type: "spring",
+                                    stiffness: 300,
+                                    damping: 20
+                                }}
+                                className="border-t border-gray-200 pt-4 cursor-pointer hover:bg-gray-50 transition-colors p-2"
+                            >
                                 <span className="block text-xs text-gray-400">Security / Cryptography</span>
                                 <h4 className="font-bold text-lg">Zero-Knowledge Proofs (ZKP)</h4>
                                 <p className="text-xs text-gray-500 mt-1">Verify credentials without exposing sensitive data.</p>
-                            </div>
-                            <div className="border-t border-gray-200 pt-4 cursor-pointer hover:bg-gray-50 transition-colors p-2">
+                            </motion.div>
+                            <motion.div
+                                whileHover={{
+                                    scale: 1.05,
+                                    x: 10,
+                                    boxShadow: "0 10px 30px rgba(255, 77, 0, 0.3)"
+                                }}
+                                transition={{
+                                    type: "spring",
+                                    stiffness: 300,
+                                    damping: 20
+                                }}
+                                className="border-t border-gray-200 pt-4 cursor-pointer hover:bg-gray-50 transition-colors p-2"
+                            >
                                 <span className="block text-xs text-gray-400">Storage / Immutable</span>
                                 <h4 className="font-bold text-lg">Merkle Tree Structures</h4>
                                 <p className="text-xs text-gray-500 mt-1">Efficient and secure content addressing.</p>
-                            </div>
+                            </motion.div>
                         </div>
                     </motion.div>
                 </div>

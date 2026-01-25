@@ -25,6 +25,18 @@ export const Navbar = ({ activeSection }: { activeSection: string }) => {
                         </span>
                         <Magnetic>
                             <motion.div
+                                whileHover={{
+                                    scale: 2,
+                                    rotate: 360,
+                                    boxShadow: "0 0 20px rgba(255, 77, 0, 0.8)"
+                                }}
+                                whileTap={{ scale: 1.5 }}
+                                transition={{
+                                    type: "spring",
+                                    stiffness: 400,
+                                    damping: 15,
+                                    rotate: { duration: 0.6 }
+                                }}
                                 className={`w-2 h-2 rounded-full transition-colors duration-300 ${activeSection === dot.id ? 'bg-primary scale-125' : 'bg-gray-500 group-hover:bg-white'
                                     }`}
                             />
