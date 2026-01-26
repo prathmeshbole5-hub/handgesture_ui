@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin } from 'lucide-react';
+import { AnimatedButton } from '../components/AnimatedButton';
 
 export const Contact = () => {
     return (
@@ -53,28 +54,14 @@ export const Contact = () => {
                     <input type="text" placeholder="Your Topic" className="w-full bg-transparent border border-gray-700 p-3 text-sm focus:border-primary focus:outline-none transition-colors" />
                     <textarea placeholder="Your Message" rows={4} className="w-full bg-transparent border border-gray-700 p-3 text-sm focus:border-primary focus:outline-none transition-colors"></textarea>
 
-                    <motion.button
+                    <AnimatedButton
                         type="submit"
-                        whileHover={{
-                            scale: 1.1,
-                            rotate: [0, -1, 1, -1, 0],
-                            boxShadow: "0 0 25px rgba(255, 77, 0, 0.8)"
-                        }}
-                        whileTap={{ scale: 0.9, rotate: 0 }}
-                        transition={{
-                            type: "spring",
-                            stiffness: 400,
-                            damping: 10,
-                            rotate: {
-                                duration: 0.5,
-                                repeat: Infinity,
-                                repeatDelay: 1
-                            }
-                        }}
-                        className="btn-glow bg-primary text-white text-xs font-bold uppercase tracking-widest px-8 py-3 hover:bg-white hover:text-black transition-colors"
+                        variant="primary"
+                        className="w-full md:w-auto"
+                        glowColor="rgba(255, 77, 0, 0.8)"
                     >
                         Send Message
-                    </motion.button>
+                    </AnimatedButton>
                 </form>
             </div>
 

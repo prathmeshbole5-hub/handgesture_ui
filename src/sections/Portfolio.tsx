@@ -40,7 +40,7 @@ export const Portfolio = () => {
                                 scale: 1.08,
                                 y: -10,
                                 rotate: [0, -2, 2, 0],
-                                boxShadow: "0 20px 60px rgba(255, 77, 0, 0.4)"
+                                boxShadow: "0 20px 60px rgba(255, 77, 0, 0.4), 0 0 40px rgba(255, 77, 0, 0.2)"
                             }}
                             whileTap={{ scale: 0.95 }}
                             transition={{

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import Webcam from 'react-webcam';
 import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
 
@@ -320,13 +321,16 @@ export const GestureController = () => {
 
                     <div className="relative w-48 h-32 rounded-lg overflow-hidden border border-white/10 bg-black/80 backdrop-blur-sm shadow-2xl transition-all duration-500">
                         {/* Power Button */}
-                        <button
+                        {/* Power Button */}
+                        <motion.button
                             onClick={() => setIsCameraActive(!isCameraActive)}
+                            whileHover={{ scale: 1.2, rotate: 90 }}
+                            whileTap={{ scale: 0.9 }}
                             className="absolute top-2 right-2 z-20 p-2 rounded-full hover:bg-white/10 transition-colors"
                             title={isCameraActive ? "Turn Off Camera" : "Turn On Camera"}
                         >
                             <div className={`w-3 h-3 rounded-full border-2 transition-all duration-300 ${isCameraActive ? 'border-primary bg-primary shadow-[0_0_10px_theme(colors.primary.DEFAULT)]' : 'border-red-500/50 bg-red-900/20'}`}></div>
-                        </button>
+                        </motion.button>
 
                         {/* Grid Overlay */}
                         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:10px_10px]"></div>

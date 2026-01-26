@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AnimatedButton } from './AnimatedButton';
 
 /**
  * REACT BASICS - LEARNING COMPONENT
@@ -50,31 +51,35 @@ function Counter() {
   return (
     <div className="p-6 border-2 border-green-400 rounded-lg m-4">
       <h2 className="text-2xl font-bold mb-4">Counter Component</h2>
-      
+
       {/* Display current count */}
       <p className="text-4xl font-bold text-green-600 mb-4">{count}</p>
-      
+
       {/* Buttons to update state */}
-      <button
+      <AnimatedButton
         onClick={() => setCount(count + 1)}
-        className="px-4 py-2 bg-green-500 text-white rounded mr-2 hover:bg-green-600"
+        variant="primary"
+        className='mr-2'
       >
         Increment
-      </button>
-      
-      <button
+      </AnimatedButton>
+
+      <AnimatedButton
         onClick={() => setCount(count - 1)}
-        className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+        variant="outline"
+        className="!text-red-400 !border-red-400 hover:!bg-red-500 hover:!text-white"
+        glowColor="rgba(239, 68, 68, 0.5)"
       >
         Decrement
-      </button>
-      
-      <button
+      </AnimatedButton>
+
+      <AnimatedButton
         onClick={() => setCount(0)}
-        className="px-4 py-2 bg-gray-500 text-white rounded ml-2 hover:bg-gray-600"
+        variant="ghost"
+        className="ml-2"
       >
         Reset
-      </button>
+      </AnimatedButton>
     </div>
   );
 }
@@ -99,7 +104,7 @@ function SimpleForm() {
   // When input changes, update the state
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
+
     // Spread operator (...) keeps existing data and updates only the changed field
     setFormData({
       ...formData,
@@ -116,7 +121,7 @@ function SimpleForm() {
   return (
     <div className="p-6 border-2 border-purple-400 rounded-lg m-4 max-w-md">
       <h2 className="text-2xl font-bold mb-4">Simple Form</h2>
-      
+
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
           <label className="block text-gray-700 font-bold mb-2">Name:</label>
@@ -154,12 +159,13 @@ function SimpleForm() {
           />
         </div>
 
-        <button
+        <AnimatedButton
           type="submit"
-          className="w-full px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600"
+          variant="primary"
+          className="w-full"
         >
           Submit
-        </button>
+        </AnimatedButton>
       </form>
 
       {/* Show submitted data */}
@@ -183,13 +189,15 @@ function ToggleContent() {
   return (
     <div className="p-6 border-2 border-orange-400 rounded-lg m-4">
       <h2 className="text-2xl font-bold mb-4">Toggle Content</h2>
-      
-      <button
+
+      <AnimatedButton
         onClick={() => setIsVisible(!isVisible)}
-        className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 mb-4"
+        variant="secondary"
+        className="mb-4"
+        glowColor="rgba(249, 115, 22, 0.5)"
       >
         {isVisible ? 'Hide' : 'Show'} Content
-      </button>
+      </AnimatedButton>
 
       {/* Conditional rendering */}
       {isVisible && (
@@ -230,7 +238,7 @@ function TodoList() {
   return (
     <div className="p-6 border-2 border-indigo-400 rounded-lg m-4 max-w-md">
       <h2 className="text-2xl font-bold mb-4">Todo List</h2>
-      
+
       <ul className="space-y-2">
         {/* Use .map() to render lists */}
         {todos.map(todo => (
@@ -242,15 +250,14 @@ function TodoList() {
             <input
               type="checkbox"
               checked={todo.completed}
-              onChange={() => {}}
+              onChange={() => { }}
               className="mr-3"
             />
             <span
-              className={`flex-1 ${
-                todo.completed
+              className={`flex-1 ${todo.completed
                   ? 'line-through text-gray-400'
                   : 'text-gray-800'
-              }`}
+                }`}
             >
               {todo.text}
             </span>
@@ -294,14 +301,14 @@ export function LearningComponent() {
 
         {/* Display all learning components */}
         <Welcome />
-        
+
         <div className="grid md:grid-cols-2 gap-4">
           <UserCard name="Alice" age={28} role="React Developer" />
           <UserCard name="Bob" age={32} role="UI Designer" />
         </div>
 
         <Counter />
-        
+
         <div className="grid md:grid-cols-2 gap-4">
           <SimpleForm />
           <ToggleContent />

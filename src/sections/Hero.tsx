@@ -52,19 +52,27 @@ export const Hero = () => {
                             <motion.a
                                 href="#about"
                                 whileHover={{
-                                    scale: 1.15,
+                                    scale: 1.1,
                                     y: -5,
-                                    boxShadow: "0 10px 40px rgba(255, 77, 0, 0.6)"
+                                    boxShadow: "0 0 30px rgba(255, 77, 0, 0.6), 0 0 60px rgba(255, 77, 0, 0.3)"
                                 }}
                                 whileTap={{ scale: 0.95, y: 0 }}
                                 transition={{
                                     type: "spring",
-                                    stiffness: 500,
+                                    stiffness: 400,
                                     damping: 15
                                 }}
-                                className="btn-glow inline-flex items-center gap-2 text-primary font-bold text-xs tracking-widest uppercase hover:text-white transition-colors py-4 px-2"
+                                className="relative overflow-hidden inline-flex items-center gap-2 text-primary font-bold text-xs tracking-widest uppercase hover:text-white transition-colors py-4 px-6 border border-primary/20 bg-black/50 backdrop-blur-sm rounded"
                             >
-                                Explore The Solution &rarr;
+                                <motion.div
+                                    className="absolute inset-0 bg-primary/20 -skew-x-12"
+                                    initial={{ x: "-100%" }}
+                                    whileHover={{ x: "200%" }}
+                                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                                />
+                                <span className="relative z-10 flex items-center gap-2">
+                                    Explore The Solution &rarr;
+                                </span>
                             </motion.a>
                         </Magnetic>
                     </motion.div>
