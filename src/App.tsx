@@ -7,6 +7,7 @@ import { Portfolio } from './sections/Portfolio';
 import { Blog } from './sections/Blog';
 import { Contact } from './sections/Contact';
 import { GestureController } from './components/GestureController';
+import { SectionWrapper } from './components/SectionWrapper';
 
 function App() {
   const [activeSection, setActiveSection] = useState('home');
@@ -89,12 +90,29 @@ function App() {
       <GestureController />
 
       <main>
-        <Hero />
-        <About />
-        <Services />
-        <Portfolio />
-        <Blog />
-        <Contact />
+        <SectionWrapper id="home">
+          <Hero />
+        </SectionWrapper>
+
+        <SectionWrapper id="about" delay={0.2}>
+          <About />
+        </SectionWrapper>
+
+        <SectionWrapper id="services" delay={0.2}>
+          <Services />
+        </SectionWrapper>
+
+        <SectionWrapper id="portfolio" delay={0.2}>
+          <Portfolio />
+        </SectionWrapper>
+
+        <SectionWrapper id="blog" delay={0.2}>
+          <Blog />
+        </SectionWrapper>
+
+        <SectionWrapper id="contact" delay={0.2}>
+          <Contact />
+        </SectionWrapper>
       </main>
     </div>
   );

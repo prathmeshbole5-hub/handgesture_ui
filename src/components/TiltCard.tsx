@@ -14,6 +14,10 @@ export const TiltCard = ({ children, className }: { children: React.ReactNode; c
     const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["17.5deg", "-17.5deg"]);
     const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-17.5deg", "17.5deg"]);
 
+    // Glare effect
+    const glareX = useTransform(mouseXSpring, [-0.5, 0.5], ["0%", "100%"]);
+    const glareY = useTransform(mouseYSpring, [-0.5, 0.5], ["0%", "100%"]);
+
     const handleMouseMove = (e: MouseEvent) => {
         if (!ref.current) return;
 
@@ -47,11 +51,20 @@ export const TiltCard = ({ children, className }: { children: React.ReactNode; c
                 rotateX,
                 transformStyle: "preserve-3d",
             }}
-            className={className}
+            className={`relative ${className}`}
         >
-            <div style={{ transform: "translateZ(75px)", transformStyle: "preserve-3d" }}>
+            <div style={{ transform: "translateZ(75px)", transformStyle: "preserve-3d" }} className="relative z-10">
                 {children}
             </div>
+
+            {/* Glare Overlay */}
+            <motion.div
+                style={{
+                    background: `radial-gradient(circle at ${glareX} ${glareY}, rgba(255,255,255,0.1) 0%, transparent 80%)`,
+                    transform: "translateZ(50px)"
+                }}
+                className="absolute inset-0 rounded-xl pointer-events-none mix-blend-overlay z-20"
+            />
         </motion.div>
     );
 };

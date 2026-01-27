@@ -11,7 +11,8 @@ export default {
         primary: "#ff4d00", // Orange accent from image
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['Outfit', 'sans-serif'],
+        display: ['Space Grotesk', 'sans-serif'],
       }
     },
   },
