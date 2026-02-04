@@ -12,7 +12,7 @@ const dots = [
 
 export const Navbar = ({ activeSection }: { activeSection: string }) => {
     return (
-        <div className="fixed left-8 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-6 p-4 rounded-full backdrop-blur-[2px] bg-black/5 border border-white/5 shadow-2xl">
+        <div className="fixed left-8 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-6 p-4 rounded-full glass-panel transition-all duration-300 hover:glass-panel-hover">
             {dots.map((dot, index) => (
                 <a
                     key={dot.id}

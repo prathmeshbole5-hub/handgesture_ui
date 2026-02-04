@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion, useScroll, useSpring } from 'framer-motion';
 import { Navbar } from './components/Navbar';
 import { Hero } from './sections/Hero';
 import { About } from './sections/About';
@@ -57,6 +58,13 @@ function App() {
     };
   }, []);
 
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  });
+
   return (
     <div className="bg-dark min-h-screen text-white font-sans selection:bg-primary selection:text-white relative cursor-none">
       {/* Global Scanline Effect */}
@@ -86,6 +94,10 @@ function App() {
 
       <Navbar activeSection={activeSection} />
 
+      <motion.div
+        className="fixed top-0 left-0 right-0 h-1 bg-primary origin-left z-[10000]"
+        style={{ scaleX }}
+      />
       {/* Hand Gesture Controller Overlay */}
       <GestureController />
 

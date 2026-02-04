@@ -35,7 +35,6 @@ export const AnimatedButton = ({
             {/* Hover Glow Background */}
             <motion.div
                 className="absolute inset-0 bg-primary/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                layoutId={`glow-${Math.random()}`}
             />
 
             {/* Scanline/Shimmer */}

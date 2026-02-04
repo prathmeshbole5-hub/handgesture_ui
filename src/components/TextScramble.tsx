@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
 const CYCLES_PER_LETTER = 2;
@@ -43,6 +43,11 @@ export const TextScramble = ({ children, className }: TextScrambleProps) => {
         if (intervalRef.current) clearInterval(intervalRef.current);
         setText(children);
     };
+
+    useEffect(() => {
+        scramble();
+        return () => stopScramble();
+    }, []);
 
     return (
         <motion.span

@@ -15,8 +15,8 @@ export const SectionWrapper = ({ children, id, className = "", delay = 0.1 }: Se
     return (
         <section id={id} ref={ref} className={`relative ${className}`}>
             <motion.div
-                initial={{ opacity: 0, y: 50, filter: "blur(10px)" }}
-                animate={isInView ? { opacity: 1, y: 0, filter: "blur(0px)" } : { opacity: 0, y: 50, filter: "blur(10px)" }}
+                initial={{ opacity: 0, y: 30, filter: "blur(5px)" }}
+                animate={isInView ? { opacity: 1, y: 0, filter: "blur(0px)" } : { opacity: 0, y: 30, filter: "blur(5px)" }}
                 transition={{ duration: 0.8, delay: delay, ease: [0.22, 1, 0.36, 1] }}
             >
                 {children}
