@@ -1,12 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Webcam from 'react-webcam';
 import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
 
 console.log("GestureController Module: Loading...");
 
+const HAND_CONNECTIONS = [
+    [0, 1], [1, 2], [2, 3], [3, 4], // Thumb
+    [0, 5], [5, 6], [6, 7], [7, 8], // Index
+    [0, 9], [9, 10], [10, 11], [11, 12], // Middle
+    [0, 13], [13, 14], [14, 15], [15, 16], // Ring
+    [0, 17], [17, 18], [18, 19], [19, 20]  // Pinky
+];
+
 export const GestureController = () => {
     const webcamRef = useRef<Webcam>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
     const [handLandmarker, setHandLandmarker] = useState<HandLandmarker | null>(null);
     const [isModelReady, setIsModelReady] = useState(false);
     const [isCameraActive, setIsCameraActive] = useState(false);
@@ -16,11 +25,14 @@ export const GestureController = () => {
     const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
     const [gestureStatus, setGestureStatus] = useState<'IDLE' | 'CURSOR ACTIVE' | 'DETECTING' | 'CLICKING' | 'SCROLL UP' | 'SCROLL DOWN'>('IDLE');
 
+    // Trail State
+    const [trail, setTrail] = useState<{ x: number, y: number, id: number }[]>([]);
+
     // Refs for optimization
     const cursorActiveRef = useRef(false);
     const smoothedPosRef = useRef({ x: 0, y: 0 });
     const lastHoveredElementRef = useRef<HTMLElement | null>(null);
-    const isPinchedRef = useRef(false); // New: Track pinch state for hysteresis
+    const isPinchedRef = useRef(false);
     const lastGestureTime = useRef(0);
     const GESTURE_COOLDOWN = 1000;
 
@@ -63,7 +75,6 @@ export const GestureController = () => {
         let lastClickTime = 0;
         const CLICK_COOLDOWN = 500;
 
-        // Helper functions (same as before)
         const getDistance = (p1: { x: number; y: number }, p2: { x: number; y: number }) => {
             return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
         };
@@ -81,8 +92,6 @@ export const GestureController = () => {
             return curledCount >= 4;
         };
 
-
-
         const isOpenHand = (landmarks: any[]) => {
             const tips = [8, 12, 16, 20];
             const pips = [6, 10, 14, 18];
@@ -90,33 +99,51 @@ export const GestureController = () => {
             return tips.every((tip, i) => getDistance(landmarks[tip], wrist) > getDistance(landmarks[pips[i]], wrist));
         };
 
+        const drawSkeleton = (landmarks: any[]) => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw connections
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#00f2fe'; // Cyan
+
+            for (const [start, end] of HAND_CONNECTIONS) {
+                const p1 = landmarks[start];
+                const p2 = landmarks[end];
+
+                ctx.beginPath();
+                // Mirror x coordinate because video is mirrored
+                ctx.moveTo((1 - p1.x) * canvas.width, p1.y * canvas.height);
+                ctx.lineTo((1 - p2.x) * canvas.width, p2.y * canvas.height);
+                ctx.stroke();
+            }
+
+            // Draw landmarks
+            ctx.fillStyle = '#4facfe'; // Blue-ish
+            for (const landmark of landmarks) {
+                ctx.beginPath();
+                ctx.arc((1 - landmark.x) * canvas.width, landmark.y * canvas.height, 3, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        };
+
         const updateHoverState = (x: number, y: number) => {
             const element = document.elementFromPoint(x, y) as HTMLElement;
 
-            // If the element under cursor has changed
             if (element !== lastHoveredElementRef.current) {
-                // 1. Cleanup old element
                 if (lastHoveredElementRef.current) {
                     try {
-                        // Remove CSS class for simulated hover
                         lastHoveredElementRef.current.classList.remove('gesture-hover');
-
-                        // Dispatch Leave Events
-                        lastHoveredElementRef.current.dispatchEvent(new MouseEvent('mouseleave', {
-                            bubbles: true, cancelable: true, view: window, clientX: x, clientY: y
-                        }));
-                        lastHoveredElementRef.current.dispatchEvent(new MouseEvent('mouseout', {
-                            bubbles: true, cancelable: true, view: window, clientX: x, clientY: y
-                        }));
-                    } catch (e) {
-                        // Element might have been removed from DOM
-                    }
+                        lastHoveredElementRef.current.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true, cancelable: true, view: window, clientX: x, clientY: y }));
+                        lastHoveredElementRef.current.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, cancelable: true, view: window, clientX: x, clientY: y }));
+                    } catch (e) { }
                 }
 
-                // 2. Setup new element
                 if (element) {
-                    // Start from the target element and traverse up to find interactive elements
-                    // This creates a "deep" hover effect so if you hover an icon inside a button, the button also gets hovered
                     let current: HTMLElement | null = element;
                     while (current && current.tagName !== 'BODY') {
                         if (
@@ -128,28 +155,30 @@ export const GestureController = () => {
                             window.getComputedStyle(current).cursor === 'pointer'
                         ) {
                             current.classList.add('gesture-hover');
-                            break; // Stop after highlighting the main interactive parent
+                            break;
                         }
                         current = current.parentElement;
                     }
-
-                    // Dispatch Enter Events to the direct target
-                    element.dispatchEvent(new MouseEvent('mouseenter', {
-                        bubbles: true, cancelable: true, view: window, clientX: x, clientY: y
-                    }));
-                    element.dispatchEvent(new MouseEvent('mouseover', {
-                        bubbles: true, cancelable: true, view: window, clientX: x, clientY: y
-                    }));
+                    element.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, cancelable: true, view: window, clientX: x, clientY: y }));
+                    element.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true, view: window, clientX: x, clientY: y }));
                 }
-
                 lastHoveredElementRef.current = element;
             }
         };
 
         const processResults = (results: any) => {
+            const canvas = canvasRef.current;
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+
             if (results.landmarks && results.landmarks.length > 0) {
                 const landmarks = results.landmarks[0];
                 const now = Date.now();
+
+                // Draw Skeleton
+                drawSkeleton(landmarks);
 
                 // 1. Check for Activation Gesture (Fist)
                 if (isFist(landmarks)) {
@@ -166,11 +195,11 @@ export const GestureController = () => {
                                 y: rawY * window.innerHeight
                             };
                         } else {
-                            // Cleanup hover when turning off
                             if (lastHoveredElementRef.current) {
                                 lastHoveredElementRef.current.classList.remove('gesture-hover');
                                 lastHoveredElementRef.current = null;
                             }
+                            setTrail([]); // Clear trail on deactivate
                         }
                         lastGestureTime.current = now;
                     }
@@ -186,18 +215,10 @@ export const GestureController = () => {
                     const lx = smoothedPosRef.current.x;
                     const ly = smoothedPosRef.current.y;
 
-                    // Adaptive Smoothing (New)
-                    // Calculate distance to determine "speed"
                     const dist = Math.sqrt(Math.pow(targetX - lx, 2) + Math.pow(targetY - ly, 2));
-
-                    // Variable smoothing factor: 
-                    // Low speed (precision) -> Low factor (~0.1)
-                    // High speed (flick) -> High factor (~0.6)
                     const minSmooth = 0.1;
                     const maxSmooth = 0.6;
-                    const speedThreshold = 200; // Pixel distance to reach max smoothing
-
-                    // Linear interpolation of smoothing factor
+                    const speedThreshold = 200;
                     const smoothFactor = minSmooth + (Math.min(dist, speedThreshold) / speedThreshold) * (maxSmooth - minSmooth);
 
                     const newX = lx + (targetX - lx) * smoothFactor;
@@ -206,10 +227,15 @@ export const GestureController = () => {
                     smoothedPosRef.current = { x: newX, y: newY };
                     setCursorPos({ x: newX, y: newY });
 
-                    // Update Hover State
+                    // Update Trail
+                    setTrail(prev => {
+                        const newTrail = [...prev, { x: newX, y: newY, id: Date.now() }];
+                        if (newTrail.length > 10) newTrail.shift();
+                        return newTrail;
+                    });
+
                     updateHoverState(newX, newY);
 
-                    // Dispatch Global Mouse Move for Custom Cursor Integration
                     window.dispatchEvent(new MouseEvent('mousemove', {
                         bubbles: true,
                         cancelable: true,
@@ -218,7 +244,6 @@ export const GestureController = () => {
                         clientY: newY
                     }));
 
-                    // Scrolling (Edge Detection)
                     const scrollZone = 0.15;
                     const scrollAmount = 15;
                     if (newY < window.innerHeight * scrollZone) {
@@ -229,17 +254,13 @@ export const GestureController = () => {
                         setGestureStatus('SCROLL DOWN');
                     }
 
-                    // Click Detection with Hysteresis (New)
                     const thumbTip = landmarks[4];
                     const indexTip = landmarks[8];
                     const pinchDist = getDistance(thumbTip, indexTip);
-
-                    // Hysteresis Thresholds
-                    const PINCH_START = 0.04; // Must be very close to start click
-                    const PINCH_END = 0.08;   // Must open wide to release click
+                    const PINCH_START = 0.04;
+                    const PINCH_END = 0.08;
 
                     if (!isPinchedRef.current) {
-                        // Attempting to click
                         if (pinchDist < PINCH_START) {
                             if (now - lastClickTime > CLICK_COOLDOWN) {
                                 const element = document.elementFromPoint(newX, newY) as HTMLElement;
@@ -251,18 +272,16 @@ export const GestureController = () => {
                                 lastClickTime = now;
                                 setGestureStatus("CLICKING");
                                 setTimeout(() => setGestureStatus("CURSOR ACTIVE"), 200);
-                                isPinchedRef.current = true; // Engage pinch lock
+                                isPinchedRef.current = true;
                             }
                         }
                     } else {
-                        // Waiting for release
                         if (pinchDist > PINCH_END) {
-                            isPinchedRef.current = false; // Disengage pinch lock
+                            isPinchedRef.current = false;
                         }
                     }
                 }
 
-                // 3. Scrolling (Open Hand)
                 if (isOpenHand(landmarks) && !isFist(landmarks)) {
                     const y = landmarks[9].y;
                     const scrollSpeed = 15;
@@ -300,10 +319,7 @@ export const GestureController = () => {
 
     return (
         <>
-            {/* Control Panel / HUD */}
             <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-4 pointer-events-none select-none">
-
-                {/* Status Indicator Pill */}
                 <div className={`
                     backdrop-blur-md px-4 py-2 rounded-full border border-white/10 
                     text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg transition-all duration-300
@@ -314,14 +330,10 @@ export const GestureController = () => {
                     <span>{isCameraActive ? gestureStatus : 'OFFLINE'}</span>
                 </div>
 
-                {/* Main HUD Display */}
                 <div className="relative group pointer-events-auto">
-                    {/* HUD Frame */}
                     <div className="absolute -inset-2 bg-gradient-to-tr from-primary/20 to-transparent rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
                     <div className="relative w-48 h-32 rounded-lg overflow-hidden border border-white/10 bg-black/80 backdrop-blur-sm shadow-2xl transition-all duration-500">
-                        {/* Power Button */}
-                        {/* Power Button */}
                         <motion.button
                             onClick={() => setIsCameraActive(!isCameraActive)}
                             whileHover={{ scale: 1.2, rotate: 90 }}
@@ -332,10 +344,8 @@ export const GestureController = () => {
                             <div className={`w-3 h-3 rounded-full border-2 transition-all duration-300 ${isCameraActive ? 'border-primary bg-primary shadow-[0_0_10px_theme(colors.primary.DEFAULT)]' : 'border-red-500/50 bg-red-900/20'}`}></div>
                         </motion.button>
 
-                        {/* Grid Overlay */}
                         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:10px_10px]"></div>
 
-                        {/* Camera Feed or Placeholder */}
                         {isCameraActive && isModelReady ? (
                             <>
                                 <Webcam
@@ -350,20 +360,24 @@ export const GestureController = () => {
                                         facingMode: "user"
                                     }}
                                 />
+                                <canvas
+                                    ref={canvasRef}
+                                    className="absolute inset-0 w-full h-full pointer-events-none"
+                                    width={320}
+                                    height={240}
+                                />
 
-                                {/* HUD Data Overlay */}
-                                <div className="absolute inset-0 p-2 flex flex-col justify-between font-mono text-[8px] text-primary/80">
-                                    <div className="flex justify-between items-start pointer-events-none">
-                                        <span>G.CONTROLLER v1.0</span>
+                                <div className="absolute inset-0 p-2 flex flex-col justify-between font-mono text-[8px] text-primary/80 pointer-events-none">
+                                    <div className="flex justify-between items-start">
+                                        <span>G.CONTROLLER v2.0</span>
                                         <span>REC</span>
                                     </div>
 
-                                    {/* Center Target */}
-                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 border border-white/20 rounded-full flex items-center justify-center pointer-events-none">
+                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 border border-white/20 rounded-full flex items-center justify-center">
                                         <div className="w-1 h-1 bg-primary rounded-full"></div>
                                     </div>
 
-                                    <div className="flex justify-between items-end pointer-events-none">
+                                    <div className="flex justify-between items-end">
                                         <div className="flex flex-col">
                                             <span>X: {cursorPos.x.toFixed(0)}</span>
                                             <span>Y: {cursorPos.y.toFixed(0)}</span>
@@ -372,7 +386,6 @@ export const GestureController = () => {
                                     </div>
                                 </div>
 
-                                {/* Dynamic Icon Overlay */}
                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-50">
                                     {gestureStatus === 'CLICKING' && <div className="w-12 h-12 border-2 border-primary rounded-full animate-ping"></div>}
                                 </div>
@@ -388,40 +401,54 @@ export const GestureController = () => {
                     </div>
                 </div>
 
-                {/* Quick Guide */}
                 <div className="flex gap-2 text-[8px] text-white/30 uppercase tracking-widest font-mono">
                     <div className="flex items-center gap-1"><span className="text-primary font-bold">Fist</span> Toggle</div>
                     <div className="flex items-center gap-1"><span className="text-primary font-bold">Pinch</span> Click</div>
                 </div>
             </div>
 
-            {/* Virtual Cursor (Visuals) */}
-            {cursorActive && (
-                <div
-                    className={`fixed pointer-events-none z-[10000] transition-all duration-75 ease-out mix-blend-difference
-                        ${gestureStatus === 'CLICKING' ? 'scale-75' : 'scale-100'}
-                    `}
-                    style={{
-                        left: 0,
-                        top: 0,
-                        transform: `translate(${cursorPos.x}px, ${cursorPos.y}px)`,
-                    }}
-                >
-                    <div className="relative -translate-x-1/2 -translate-y-1/2">
-                        {/* Main Ring */}
-                        <div className={`w-8 h-8 rounded-full border-2 transition-colors duration-200 flex items-center justify-center
-                            ${gestureStatus === 'CLICKING' ? 'border-primary bg-primary/20' : 'border-white'}
-                        `}>
-                            {/* Inner Dot */}
-                            <div className={`w-1 h-1 bg-white rounded-full ${gestureStatus === 'CLICKING' ? 'bg-primary' : ''}`}></div>
-                        </div>
+            <AnimatePresence>
+                {cursorActive && (
+                    <>
+                        {trail.map((t, i) => (
+                            <motion.div
+                                key={t.id}
+                                initial={{ opacity: 0.5, scale: 0.8 }}
+                                animate={{ opacity: 0, scale: 0.2 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.3 }}
+                                className="fixed pointer-events-none z-[9999] w-4 h-4 rounded-full bg-primary blur-sm"
+                                style={{
+                                    left: t.x,
+                                    top: t.y,
+                                    transform: 'translate(-50%, -50%)'
+                                }}
+                            />
+                        ))}
+                        <div
+                            className={`fixed pointer-events-none z-[10000] transition-all duration-75 ease-out mix-blend-difference
+                                ${gestureStatus === 'CLICKING' ? 'scale-75' : 'scale-100'}
+                            `}
+                            style={{
+                                left: 0,
+                                top: 0,
+                                transform: `translate(${cursorPos.x}px, ${cursorPos.y}px)`,
+                            }}
+                        >
+                            <div className="relative -translate-x-1/2 -translate-y-1/2">
+                                <div className={`w-8 h-8 rounded-full border-2 transition-colors duration-200 flex items-center justify-center
+                                    ${gestureStatus === 'CLICKING' ? 'border-primary bg-primary/20' : 'border-white'}
+                                `}>
+                                    <div className={`w-1 h-1 bg-white rounded-full ${gestureStatus === 'CLICKING' ? 'bg-primary' : ''}`}></div>
+                                </div>
 
-                        {/* Crosshairs */}
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-[1px] bg-white/50"></div>
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-12 w-[1px] bg-white/50"></div>
-                    </div>
-                </div>
-            )}
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-[1px] bg-white/50"></div>
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-12 w-[1px] bg-white/50"></div>
+                            </div>
+                        </div>
+                    </>
+                )}
+            </AnimatePresence>
         </>
     );
 };
